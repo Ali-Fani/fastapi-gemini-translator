@@ -59,7 +59,7 @@ async def translate(rich_text: str,source_language: str,target_language: str,cal
     # Schedule translation in the background
     asyncio.create_task(translate_in_background(new_request.id, rich_text, db))  # No need to copy session
 
-    return {"message": f"Translation request submitted. You can check status for completion. translation request id: {new_request.request_id}"}
+    return {"message": "Translation request submitted. You can check status for completion.", "request_id": new_request.request_id, "status": "submitted"}
 
 
 @app.get("/translate/{request_id}")
