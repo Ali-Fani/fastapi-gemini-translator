@@ -10,7 +10,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.db import get_session, init_db
 from config.config import Settings
-
+from pydantic import BaseModel
 from app.models import TranslationRequest
 
 from app.tasks import translate_in_background
@@ -41,23 +41,30 @@ app = FastAPI()
 async def pong():
     return {"ping": "pong!"}
 
+class TranslateRequest(BaseModel):
+    rich_text: str
+    source_language: str
+    target_language: str
+    callback_url: str
+    request_id: Optional[str] = None
+
 
 
 @app.post("/translate")
-async def translate(rich_text: str,source_language: str,target_language: str,callback_url: str,request_id: Optional[str] = None, db: AsyncSession = Depends(get_session)):
-    if request_id is not None:
-        existing_request = await db.execute(select(TranslationRequest).where(TranslationRequest.request_id == request_id))
+async def translate(translation_request: TranslateRequest, db: AsyncSession = Depends(get_session)):
+    if translation_request.request_id is not None:
+        existing_request = await db.execute(select(TranslationRequest).where(TranslationRequest.request_id == translation_request.request_id))
         existing_request = existing_request.scalars().first()
         if existing_request:
             # If a duplicate request_id is found, return an error response
             raise HTTPException(status_code=400, detail="Duplicate request_id. A translation request with this request_id already exists.")
     # Create a new translation request
-    new_request = TranslationRequest(rich_text=rich_text,source_language=source_language,target_language=target_language,callback_url=callback_url,request_id=request_id,created_at=datetime.utcnow())
+    new_request = TranslationRequest(rich_text=translation_request.rich_text,source_language=translation_request.source_language,target_language=target_language,callback_url=callback_url,request_id=request_id,created_at=datetime.utcnow())
     db.add(new_request)
     await db.commit()
 
     # Schedule translation in the background
-    asyncio.create_task(translate_in_background(new_request.id, rich_text, db))  # No need to copy session
+    asyncio.create_task(translate_in_background(new_request.id, translation_request.rich_text, db))  # No need to copy session
 
     return {"message": "Translation request submitted. You can check status for completion.", "request_id": new_request.request_id, "status": "submitted"}
 
