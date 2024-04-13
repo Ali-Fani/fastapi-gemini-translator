@@ -48,9 +48,14 @@ class TranslateRequest(BaseModel):
     callback_url: str
     request_id: Optional[str] = None
 
+class TranslationRequestResponse(BaseModel):
+    message: str
+    request_id: str
+    status: str
 
 
-@app.post("/translate")
+
+@app.post("/translate",response_model=TranslationRequestResponse)
 async def translate(translation_request: TranslateRequest, db: AsyncSession = Depends(get_session)):
     if translation_request.request_id is not None:
         existing_request = await db.execute(select(TranslationRequest).where(TranslationRequest.request_id == translation_request.request_id))
@@ -59,14 +64,14 @@ async def translate(translation_request: TranslateRequest, db: AsyncSession = De
             # If a duplicate request_id is found, return an error response
             raise HTTPException(status_code=400, detail="Duplicate request_id. A translation request with this request_id already exists.")
     # Create a new translation request
-    new_request = TranslationRequest(rich_text=translation_request.rich_text,source_language=translation_request.source_language,target_language=target_language,callback_url=callback_url,request_id=request_id,created_at=datetime.utcnow())
+    new_request = TranslationRequest(rich_text=translation_request.rich_text,source_language=translation_request.source_language,target_language=translation_request.target_language,callback_url=translation_request.callback_url,request_id=translation_request.request_id,created_at=datetime.utcnow())
     db.add(new_request)
     await db.commit()
 
     # Schedule translation in the background
     asyncio.create_task(translate_in_background(new_request.id, translation_request.rich_text, db))  # No need to copy session
-
-    return {"message": "Translation request submitted. You can check status for completion.", "request_id": new_request.request_id, "status": "submitted"}
+# {"message": "Translation request submitted. You can check status for completion.", "request_id": new_request.request_id, "status": "submitted"}
+    return TranslationRequestResponse(message="Translation request submitted. You can check status for completion.", request_id=new_request.request_id, status="submitted")
 
 
 @app.get("/translate/{request_id}")
