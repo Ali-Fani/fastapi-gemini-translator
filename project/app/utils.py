@@ -11,6 +11,9 @@
 #         print(f"An error occurred while translating the text: {e}")
 #         return None
 from functools import lru_cache
+import urllib.parse
+import html
+
 import os
 import time
 import google.generativeai as genai
@@ -35,8 +38,10 @@ def translate(rich_text: str, src_lang: str, dest_lang: str) -> str:
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-1.0-pro')
         chat = model.start_chat(history=[])
+        # chat.send_message(f"Translate the text from {src_lang} to {dest_lang}")
     except Exception as e:
         # Handle exceptions related to API connection or usage
+        print(e)
         raise ConnectionError(f"Failed to connect to genai API: {e}")
     
     try:
@@ -47,19 +52,15 @@ def translate(rich_text: str, src_lang: str, dest_lang: str) -> str:
 
     for text in soup.findAll(string=True, recursive=True):
         if text.strip():
-            prompt = f"""
-            Translate the following text from {src_lang} to {dest_lang}:
-
-            {text.strip()}
-
-            **NOTE:** This is a partial chat session. Please translate and preserve the meaning within the context of the entire conversation. and dont include this text in response
-
-                    """
+            prompt = f"{text.strip()}"
             retry_attempts = 3  # Set the number of retry attempts
             for attempt in range(retry_attempts):
                 try:
-                    response = chat.send_message(prompt)
-                    text.replaceWith(response.text.split("\n\n**NOTE:**")[0])
+                    prompt_decode = urllib.parse.unquote_plus(prompt)
+                    print(prompt_decode)
+                    response = chat.send_message(f"Translate the text from {src_lang} to {dest_lang}: {prompt_decode}")
+                    print(html.unescape(response.text))
+                    text.replaceWith(html.unescape(response.text))
                     break  # Break the loop if the request was successful
                 except Exception as e:
                     if '429' in str(e):  # Check if the error code 429 is in the exception message

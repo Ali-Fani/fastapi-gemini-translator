@@ -1,4 +1,5 @@
 import asyncio
+import html
 from datetime import datetime
 import json
 import urllib.request  # Import the entire urllib.request module
@@ -13,7 +14,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 def send_webhook_notification(request_id, translated_text, webhook_url: str):
     # Prepare data for the webhook payload
     data = json.dumps(
-        {"request_id": request_id, "translated_text": translated_text}
+        {"request_id": request_id, "translated_text": html.unescape(translated_text)}
     ).encode("utf-8")
 
     try:
@@ -49,9 +50,9 @@ async def translate_in_background(id, rich_text, db: AsyncSession):
                 .values(
                     {
                         TranslationRequest.status: "error",
-                        TranslationRequest.translated_text: translated_text[
+                        TranslationRequest.translated_text: html.unescape(translated_text[
                             "translated_text"
-                        ],
+                        ]),
                         TranslationRequest.updated_at: datetime.utcnow(),
                     }
                 )
@@ -76,9 +77,9 @@ async def translate_in_background(id, rich_text, db: AsyncSession):
                 .values(
                     {
                         TranslationRequest.status: "complete",
-                        TranslationRequest.translated_text: translated_text[
+                        TranslationRequest.translated_text: html.unescape(translated_text[
                             "translated_text"
-                        ],
+                        ]),
                         TranslationRequest.updated_at: datetime.utcnow(),
                         TranslationRequest.token_count: translated_text["token_count"],
                     }

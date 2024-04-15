@@ -1,13 +1,11 @@
 import asyncio
 from datetime import datetime
 from functools import lru_cache
-from typing import Annotated, Optional
+from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException
-from sqlalchemy import func
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-
 from app.db import get_session, init_db
 from config.config import Settings
 from pydantic import BaseModel
@@ -15,13 +13,12 @@ from app.models import TranslationRequest
 
 from app.tasks import translate_in_background
 import sentry_sdk
-
-
+# from loguru import logger
 @lru_cache
 def get_settings():
     return Settings()
 
-
+# logger = logging.getLogger("fastlog")
 # from app.models import Song, SongCreate
 sentry_sdk.init(
     dsn=get_settings().sentry_dsn,
@@ -39,7 +36,8 @@ app = FastAPI()
 
 @app.get("/ping")
 async def pong():
-    return {"ping": "pong!"}
+    # logger.info('Something bad happened.')
+    return {"ping": "pong2!"}
 
 class TranslateRequest(BaseModel):
     rich_text: str
@@ -57,6 +55,7 @@ class TranslationRequestResponse(BaseModel):
 
 @app.post("/translate",response_model=TranslationRequestResponse)
 async def translate(translation_request: TranslateRequest, db: AsyncSession = Depends(get_session)):
+
     if translation_request.request_id is not None:
         existing_request = await db.execute(select(TranslationRequest).where(TranslationRequest.request_id == translation_request.request_id))
         existing_request = existing_request.scalars().first()
