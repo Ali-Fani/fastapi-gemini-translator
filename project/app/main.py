@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime
 from functools import lru_cache
 from typing import Optional
+import logfire
 
 from fastapi import Depends, FastAPI, HTTPException
 from sqlmodel import select
@@ -10,6 +11,7 @@ from app.db import get_session, init_db
 from config.config import Settings
 from pydantic import BaseModel
 from app.models import TranslationRequest
+
 
 from app.tasks import translate_in_background
 import sentry_sdk
@@ -28,9 +30,11 @@ sentry_sdk.init(
 )
 
 
-
-
 app = FastAPI()
+
+logfire.configure(token=get_settings().LOGFIRE_TOKEN)
+logfire.instrument_fastapi(app)
+
 
 
 

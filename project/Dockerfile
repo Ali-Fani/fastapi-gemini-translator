@@ -20,3 +20,5 @@ RUN pip install -r requirements.txt
 
 # add app
 COPY . .
+
+CMD ["fastapi", "run", "app/main.py", "--port", "8000"]
