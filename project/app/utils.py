@@ -56,7 +56,8 @@ def translate(rich_text: str, src_lang: str, dest_lang: str) -> str:
     for text in soup.findAll(string=True, recursive=True):
         if text.strip():
             prompt = f"{text.strip()}"
-            retry_attempts = 3  # Set the number of retry attempts
+            retry_attempts = 5  # Set the number of retry attempts
+            backoff_time = 5  # Initial backoff time in seconds
             for attempt in range(retry_attempts):
                 try:
                     prompt_decode = urllib.parse.unquote_plus(prompt)
@@ -81,7 +82,8 @@ def translate(rich_text: str, src_lang: str, dest_lang: str) -> str:
                             print(
                                 f"Rate limit exceeded, retrying in 60 seconds... Attempt {attempt + 1}/{retry_attempts}"
                             )
-                            time.sleep(10)  # Wait for 60 seconds before retrying
+                            time.sleep(backoff_time)  # Wait for 60 seconds before retrying
+                            backoff_time *= 2
                         else:
                             print(
                                 "Max retry attempts reached. Failed to translate text due to rate limiting."
