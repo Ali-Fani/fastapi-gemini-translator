@@ -74,16 +74,14 @@ def translate(rich_text: str, src_lang: str, dest_lang: str) -> str:
                     text.replaceWith(html.unescape(response.text))
                     break  # Break the loop if the request was successful
                 except Exception as e:
-                    if "429" in str(
-                        e
-                    ):  # Check if the error code 429 is in the exception message
+                    if "429" in str(e) or "500" in str(e):  # Check if the error code 429 is in the exception message
                         if (
                             attempt < retry_attempts - 1
                         ):  # Check if more retries are allowed
                             print(
                                 f"Rate limit exceeded, retrying in 60 seconds... Attempt {attempt + 1}/{retry_attempts}"
                             )
-                            time.sleep(5)  # Wait for 60 seconds before retrying
+                            time.sleep(10)  # Wait for 60 seconds before retrying
                         else:
                             print(
                                 "Max retry attempts reached. Failed to translate text due to rate limiting."
