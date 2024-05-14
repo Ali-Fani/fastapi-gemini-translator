@@ -89,10 +89,12 @@ def translate(rich_text: str, src_lang: str, dest_lang: str) -> str:
                                 "Max retry attempts reached. Failed to translate text due to rate limiting."
                             )
                             response_object["status"] = "error"
+                            sentry_sdk.capture_exception(e)
                             return response_object
                     else:
                         print(f"Error during translation: {e}")
                         response_object["status"] = "error"
+                        sentry_sdk.capture_exception(e)
                         return response_object
     token_count = model.count_tokens(chat.history).total_tokens
     sentry_sdk.metrics.incr("total_tokens_used", token_count, tags={"kind": "usage"})
